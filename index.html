@@ -727,13 +727,7 @@
         }, []);
 
         useEffect(() => {
-          // Keep heavy 3D scene off mobile by default for smoother UX.
-          if (!isDesktop) {
-            setLoadRobot(false);
-            return undefined;
-          }
-
-          const timeout = setTimeout(() => setLoadRobot(true), 650);
+          const timeout = setTimeout(() => setLoadRobot(true), isDesktop ? 650 : 900);
           return () => clearTimeout(timeout);
         }, [isDesktop]);
 
@@ -1030,55 +1024,7 @@
               React.createElement(
                 "div",
                 { style: { width: "100%", height: "100%" } },
-                !isDesktop
-                  ? React.createElement(
-                      "div",
-                      {
-                        style: {
-                          width: "100%",
-                          height: "100%",
-                          border: "1px solid rgba(14,165,233,0.4)",
-                          borderRadius: "16px",
-                          background:
-                            "linear-gradient(180deg, rgba(6,182,212,0.16), rgba(14,165,233,0.08))",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexDirection: "column",
-                          gap: "10px",
-                          color: "var(--color-secondary)",
-                          textAlign: "center",
-                          padding: "14px",
-                          boxSizing: "border-box"
-                        }
-                      },
-                      React.createElement(
-                        "div",
-                        {
-                          style: {
-                            border: "1px solid rgba(14,165,233,0.5)",
-                            background: "rgba(6,182,212,0.16)",
-                            color: "var(--color-secondary)",
-                            borderRadius: "999px",
-                            padding: "4px 10px",
-                            fontSize: "12px",
-                            fontWeight: 700
-                          }
-                        },
-                        "Mobile Static Mode"
-                      ),
-                      React.createElement(
-                        "div",
-                        { style: { fontSize: "14px", color: "var(--color-text)", fontWeight: 600 } },
-                        "3D robot disabled for smoother performance"
-                      ),
-                      React.createElement(
-                        "div",
-                        { style: { fontSize: "12px", color: "var(--color-muted)", maxWidth: "260px" } },
-                        "On desktop/laptop, the full interactive robot is enabled automatically."
-                      )
-                    )
-                  : loadRobot
+                loadRobot
                   ? React.createElement(
                       Suspense,
                       {
