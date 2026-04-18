@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CipherStack</title>
+  </head>
+  <body style="margin: 0; background: #0f0f13; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <div id="root" style="height: 100vh;"></div>
+
+    <script type="module">
+      import React, { Suspense, useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.2.0";
+      import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+      import {
+        AnimatePresence,
+        motion
+      } from "https://esm.sh/framer-motion@11?deps=react@18.2.0,react-dom@18.2.0";
+      import CIPHERS from "./ciphers.js";
+      import {
+        addNode,
+        createNode,
+        moveNode,
+        removeNode,
+        updateNodeConfig
+      } from "./pipeline.js";
+
+      const SPLINE_URL = "https://prod.spline.design/o37ssfr-6egG27oh/scene.splinecode";
+      const LazySpline = React.lazy(() =>
+        import("https://esm.sh/@splinetool/react-spline@2?deps=react@18.2.0")
+      );
+      const flowModuleText = await fetch("./PipelineFlow3D.jsx").then((res) => res.text());
+      const flowBlobUrl = URL.createObjectURL(
+        new Blob([flowModuleText], { type: "text/javascript" })
+      );
+      const { default: PipelineFlow3D } = await import(flowBlobUrl);
+      URL.revokeObjectURL(flowBlobUrl);
+
+      const truncate = (value, max = 40) => {
+        const text = String(value ?? "");
+        return text.length > max ? `${text.slice(0, max)}...` : text;
+      };
+
+      const toBase64 = (value) => {
+        const text = String(value ?? "");
+        if (typeof btoa === "function") return btoa(text);
+        if (typeof Buffer !== "undefined") return Buffer.from(text, "binary").toString("base64");
+        throw new Error("Base64 encoding is unavailable in this runtime.");
+      };
+
+      const badgeColorMap = {
+        caesar: "#4f46e5",
+        xor: "#7c3aed",
+        vigenere: "#db2777",
+        railfence: "#0891b2",
+        base64: "#16a34a",
+        reverse: "#f97316"
+      };
+
+      const PRESETS = {
+        beginner: [
+          { cipherKey: "caesar", config: { shift: 3 } },
+          { cipherKey: "xor", config: { key: "abc" } },
+          { cipherKey: "vigenere", config: { keyword: "test" } }
+        ],
+        intermediate: [
+          { cipherKey: "caesar", config: { shift: 5 } },
+          { cipherKey: "xor", config: { key: "delta" } },
+          { cipherKey: "vigenere", config: { keyword: "orbit" } },
+          { cipherKey: "railfence", config: { rails: 3 } },
+          { cipherKey: "base64", config: {} }
+        ],
+        advanced: [
+          { cipherKey: "caesar", config: { shift: 7 } },
+          { cipherKey: "xor", config: { key: "cipher" } },
+          { cipherKey: "vigenere", config: { keyword: "matrix" } },
+          { cipherKey: "railfence", config: { rails: 4 } },
+          { cipherKey: "base64", config: {} },
+          { cipherKey: "reverse", config: {} }
+        ]
+      };
+
+      const isValidNode = (node) => {
+        if (!node || typeof node !== "object") return false;
+        if (typeof node.id !== "string" || node.id.length === 0) return false;
+        if (typeof node.cipherKey !== "string" || !CIPHERS[node.cipherKey]) return false;
+        if (!node.config || typeof node.config !== "object" || Array.isArray(node.config)) return false;
+        return true;
+      };
+
+      const validatePipelineImport = (value) => {
+        if (!Array.isArray(value)) return { ok: false, message: "Pipeline JSON must be an array." };
+        for (let i = 0; i < value.length; i += 1) {
+          if (!isValidNode(value[i])) {
+            return {
+              ok: false,
+              message: `Invalid node at index ${i}. Expected { id, cipherKey, config }.`
+            };
+          }
+        }
+        return { ok: true };
+      };
+
+      const executePipelineSafe = (pipeline, inputText, mode) => {
+        const orderedNodes = mode === "encrypt" ? pipeline : [...pipeline].reverse();
+        const steps = [];
+        const nodeErrors = {};
+        let current = String(inputText ?? "");
+
+        for (let i = 0; i < orderedNodes.length; i += 1) {
+          const node = orderedNodes[i];
+          const cipher = CIPHERS[node.cipherKey];
+          if (!cipher) {
+            nodeErrors[node.id] = `Unknown cipher: ${node.cipherKey}`;
+            break;
+          }
+
+          try {
+            const output =
+              mode === "encrypt"
+                ? cipher.encrypt(current, node.config)
+                : cipher.decrypt(current, node.config);
+
+            steps.push({ nodeId: node.id, cipherKey: node.cipherKey, input: current, output });
+            current = output;
+          } catch (error) {
+            nodeErrors[node.id] = error?.message || String(error);
+            break;
+          }
+        }
+
+        return {
+          steps,
+          nodeErrors,
+          finalOutput: steps.length > 0 ? steps[steps.length - 1].output : ""
+        };
+      };
+
+      function CipherWorkbench({ onBackToHero = null } = {}) {
+        const [pipeline, setPipeline] = useState([]);
+        const [mode, setMode] = useState("encrypt");
+        const [inputText, setInputText] = useState("");
+        const [runResults, setRunResults] = useState(null);
+        const [isRunningFlow, setIsRunningFlow] = useState(false);
+        const [nodeErrors, setNodeErrors] = useState({});
+        const [livePreview, setLivePreview] = useState("");
+        const [livePreviewError, setLivePreviewError] = useState("");
+        const [expandedNodeId, setExpandedNodeId] = useState(null);
+        const [toast, setToast] = useState(null);
+        const fileInputRef = useRef(null);
+        const runTimerRef = useRef(null);
+        const isMobile = typeof window !== "undefined" ? window.innerWidth < 1024 : false;
+
+        const canRun = pipeline.length >= 3 && inputText.trim().length > 0;
+
+        useEffect(() => {
+          if (!toast) return undefined;
+          const timeoutId = setTimeout(() => setToast(null), 2600);
+          return () => clearTimeout(timeoutId);
+        }, [toast]);
+
+        useEffect(() => {
+          return () => {
+            if (runTimerRef.current) clearTimeout(runTimerRef.current);
+          };
+        }, []);
+
+        useEffect(() => {
+          if (pipeline.length < 3) {
+            setLivePreview("");
+            setLivePreviewError("");
+            return undefined;
+          }
+
+          const timeoutId = setTimeout(() => {
+            if (!inputText.trim()) {
+              setLivePreview("");
+              setLivePreviewError("");
+              return;
+            }
+            const result = executePipelineSafe(pipeline, inputText, mode);
+            setLivePreview(result.finalOutput);
+            const firstError = Object.values(result.nodeErrors)[0] || "";
+            setLivePreviewError(firstError ? `Live Preview Error: ${firstError}` : "");
+          }, 400);
+
+          return () => clearTimeout(timeoutId);
+        }, [pipeline, inputText, mode]);
+
+        const resultByNodeId = useMemo(() => {
+          const map = new Map();
+          if (!runResults) return map;
+          for (let i = 0; i < runResults.length; i += 1) map.set(runResults[i].nodeId, runResults[i]);
+          return map;
+        }, [runResults]);
+
+        const finalOutput = runResults && runResults.length > 0 ? runResults[runResults.length - 1].output : "";
+        const inputLength = inputText.length;
+        const outputLength = finalOutput.length;
+        const expansionRatio = inputLength > 0 ? (outputLength / inputLength).toFixed(2) : "0.00";
+        const cipherEntries = Object.entries(CIPHERS);
+
+        const resetRunViews = () => {
+          setRunResults(null);
+          setNodeErrors({});
+        };
+
+        const copyTextToClipboard = async (text) => {
+          if (!text) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+          }
+          const temp = document.createElement("textarea");
+          temp.value = text;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand("copy");
+          document.body.removeChild(temp);
+        };
+
+        const loadPreset = (presetKey) => {
+          const preset = PRESETS[presetKey] || [];
+          const nextPipeline = preset.map((item) => {
+            const node = createNode(item.cipherKey);
+            return { ...node, config: { ...node.config, ...item.config } };
+          });
+          setPipeline(nextPipeline);
+          setExpandedNodeId(null);
+          resetRunViews();
+          setToast({ type: "success", message: "Preset loaded." });
+        };
+
+        return React.createElement(
+          "div",
+          {
+            style: {
+              minHeight: "100vh",
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              background: "#0f0f13",
+              color: "#ffffff"
+            }
+          },
+          React.createElement(
+            "aside",
+            {
+              style: {
+                width: isMobile ? "100%" : "30%",
+                minWidth: isMobile ? "auto" : "300px",
+                borderRight: isMobile ? "none" : "1px solid #2a2a38",
+                borderBottom: isMobile ? "1px solid #2a2a38" : "none",
+                padding: "20px",
+                boxSizing: "border-box",
+                overflowY: "auto"
+              }
+            },
+            React.createElement("input", {
+              ref: fileInputRef,
+              type: "file",
+              accept: "application/json,.json",
+              onChange: async (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const parsed = JSON.parse(text);
+                  const validation = validatePipelineImport(parsed);
+                  if (!validation.ok) {
+                    setToast({ type: "error", message: validation.message || "Invalid pipeline file." });
+                    return;
+                  }
+                  setPipeline(parsed.map((node) => ({ ...node, config: { ...node.config } })));
+                  setExpandedNodeId(null);
+                  resetRunViews();
+                  setToast({ type: "success", message: "Pipeline imported." });
+                } catch (error) {
+                  setToast({ type: "error", message: error?.message || "Could not import pipeline JSON." });
+                }
+              },
+              style: { display: "none" }
+            }),
+            React.createElement(
+              "div",
+              { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "14px" } },
+              React.createElement("h2", { style: { margin: 0, color: "#a78bfa" } }, "CipherStack"),
+              React.createElement(
+                "div",
+                { style: { display: "flex", gap: "6px" } },
+                onBackToHero
+                  ? React.createElement(
+                      "button",
+                      {
+                        onClick: onBackToHero,
+                        style: {
+                          border: "1px solid #4b3c73",
+                          background: "#1f1a32",
+                          color: "#e9ddff",
+                          borderRadius: "8px",
+                          padding: "6px 10px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          fontWeight: 600
+                        }
+                      },
+                      "Back to Hero"
+                    )
+                  : null,
+                React.createElement(
+                  "button",
+                  {
+                    onClick: () => {
+                      const json = JSON.stringify(pipeline, null, 2);
+                      const blob = new Blob([json], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "pipeline.json";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    },
+                    style: {
+                      background: "#231f36",
+                      border: "1px solid #4a3b79",
+                      color: "#e9ddff",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      fontSize: "12px"
+                    }
+                  },
+                  "Export"
+                ),
+                React.createElement(
+                  "button",
+                  {
+                    onClick: () => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                        fileInputRef.current.click();
+                      }
+                    },
+                    style: {
+                      background: "#231f36",
+                      border: "1px solid #4a3b79",
+                      color: "#e9ddff",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      fontSize: "12px"
+                    }
+                  },
+                  "Import"
+                )
+              )
+            ),
+            React.createElement(
+              "section",
+              {
+                style: {
+                  marginBottom: "12px",
+                  border: "1px solid #2f2f42",
+                  borderRadius: "12px",
+                  background: "#14141d",
+                  padding: "10px"
+                }
+              },
+              React.createElement(
+                "div",
+                { style: { color: "#c4b5fd", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
+                "Quick Presets"
+              ),
+              React.createElement(
+                "div",
+                { style: { color: "#8fa0ba", fontSize: "11px", marginBottom: "8px" } },
+                "Load complete starter pipelines"
+              ),
+              React.createElement(
+                "div",
+                { style: { display: "grid", gap: "8px" } },
+                React.createElement(
+                  "button",
+                  { onClick: () => loadPreset("beginner"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  "Beginner (3 nodes)"
+                ),
+                React.createElement(
+                  "button",
+                  { onClick: () => loadPreset("intermediate"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  "Intermediate (5 nodes)"
+                ),
+                React.createElement(
+                  "button",
+                  { onClick: () => loadPreset("advanced"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  "Advanced (6 nodes)"
+                )
+              )
+            ),
+            React.createElement(
+              "section",
+              {
+                style: {
+                  marginBottom: "16px",
+                  border: "1px solid #2f2f42",
+                  borderRadius: "12px",
+                  background: "#14141d",
+                  padding: "10px"
+                }
+              },
+              React.createElement(
+                "div",
+                { style: { color: "#c4b5fd", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
+                "Manual Node Builder"
+              ),
+              React.createElement(
+                "div",
+                { style: { color: "#8fa0ba", fontSize: "11px", marginBottom: "8px" } },
+                "Add individual ciphers one by one"
+              ),
+              React.createElement(
+                "div",
+                { style: { display: "grid", gap: "8px" } },
+                ...cipherEntries.map(([key, cipher]) =>
+                  React.createElement(
+                    "button",
+                    {
+                      key,
+                      onClick: () => {
+                        setPipeline((prev) => addNode(prev, key));
+                        resetRunViews();
+                      },
+                      style: {
+                        background: "#1a1a24",
+                        color: "#fff",
+                        border: "1px solid #343447",
+                        borderRadius: "9px",
+                        padding: "9px",
+                        textAlign: "left",
+                        cursor: "pointer"
+                      }
+                    },
+                    cipher.name
+                  )
+                )
+              )
+            ),
+            pipeline.length < 3
+              ? React.createElement("div", { style: { background: "#2b1b3a", border: "1px solid #6d28d9", color: "#e9d5ff", borderRadius: "10px", padding: "10px", marginBottom: "10px", fontSize: "13px" } }, "Add at least 3 nodes to run the pipeline")
+              : null,
+            React.createElement(
+              "div",
+              { style: { display: "flex", flexDirection: "column", gap: "10px" } },
+              ...pipeline.flatMap((node, index) => {
+                const cipher = CIPHERS[node.cipherKey];
+                const step = resultByNodeId.get(node.id);
+                const nodeError = nodeErrors[node.id];
+                const isExpanded = expandedNodeId === node.id;
+                const badgeColor = badgeColorMap[node.cipherKey] || "#7c3aed";
+
+                const nodeCard = React.createElement(
+                  "div",
+                  { key: node.id, onClick: () => setExpandedNodeId((prev) => (prev === node.id ? null : node.id)), style: { background: "#1a1a24", border: "1px solid #2f2f42", borderRadius: "12px", padding: "12px", cursor: "pointer" } },
+                  React.createElement(
+                    "div",
+                    { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "10px" } },
+                    React.createElement(
+                      "div",
+                      { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                      React.createElement("span", { style: { fontWeight: 600 } }, cipher.name),
+                      React.createElement("span", { style: { background: badgeColor, color: "#fff", fontSize: "11px", padding: "3px 7px", borderRadius: "999px", textTransform: "uppercase" } }, node.cipherKey)
+                    ),
+                    React.createElement(
+                      "div",
+                      { style: { display: "flex", gap: "6px" } },
+                      React.createElement("button", { disabled: index === 0, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "up")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #42425a", background: index === 0 ? "#222230" : "#2d2d3f", color: index === 0 ? "#6f6f86" : "#fff", cursor: index === 0 ? "not-allowed" : "pointer" } }, "↑"),
+                      React.createElement("button", { disabled: index === pipeline.length - 1, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "down")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #42425a", background: index === pipeline.length - 1 ? "#222230" : "#2d2d3f", color: index === pipeline.length - 1 ? "#6f6f86" : "#fff", cursor: index === pipeline.length - 1 ? "not-allowed" : "pointer" } }, "↓"),
+                      React.createElement("button", { onClick: (event) => { event.stopPropagation(); setPipeline((prev) => removeNode(prev, node.id)); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #663344", background: "#3a1f2a", color: "#ffd4e1", cursor: "pointer" } }, "×")
+                    )
+                  ),
+                  React.createElement(
+                    "div",
+                    { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                    ...(cipher.configFields || []).map((field) =>
+                      React.createElement(
+                        "label",
+                        { key: `${node.id}-${field.key}`, onClick: (event) => event.stopPropagation(), style: { display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "#d1d5db" } },
+                        field.label,
+                        React.createElement("input", {
+                          type: field.type === "number" ? "number" : "text",
+                          placeholder: field.placeholder || "",
+                          value: node.config[field.key] === undefined ? "" : String(node.config[field.key]),
+                          onClick: (event) => event.stopPropagation(),
+                          onChange: (event) => {
+                            const nextValue = field.type === "number" ? Number(event.target.value) : event.target.value;
+                            setPipeline((prev) => updateNodeConfig(prev, node.id, { ...node.config, [field.key]: nextValue }));
+                            resetRunViews();
+                          },
+                          style: { background: "#11111a", border: "1px solid #343447", color: "#fff", borderRadius: "8px", padding: "8px 10px" }
+                        })
+                      )
+                    )
+                  ),
+                  isExpanded ? React.createElement("div", { style: { marginTop: "10px", padding: "8px", borderRadius: "8px", border: "1px solid #383854", background: "#161626", color: "#cfd1f1", fontSize: "12px" } }, cipher.description) : null,
+                  nodeError ? React.createElement("div", { style: { marginTop: "10px", borderRadius: "8px", border: "1px solid #7f1d1d", background: "#321313", color: "#fecaca", fontSize: "12px", padding: "8px" } }, `Error: ${nodeError}`) : null,
+                  step ? React.createElement("div", { style: { marginTop: "10px", borderTop: "1px solid #2e2e42", paddingTop: "8px", fontSize: "12px", color: "#c9c9d9" } }, `IN: ${truncate(step.input, 40)}`, React.createElement("div", null, `OUT: ${truncate(step.output, 40)}`)) : null
+                );
+
+                if (index === pipeline.length - 1) return [nodeCard];
+                return [
+                  nodeCard,
+                  React.createElement(
+                    "div",
+                    { key: `${node.id}-flow`, style: { display: "flex", alignItems: "center", gap: "8px", marginLeft: "6px", color: "#c4b5fd" } },
+                    React.createElement("span", null, "→"),
+                    React.createElement("span", { style: { background: "#2b2740", border: "1px solid #4c3a74", borderRadius: "999px", padding: "3px 8px", fontSize: "11px", color: "#ddd6fe" } }, step ? truncate(step.output, 40) : "run pipeline to view")
+                  )
+                ];
+              })
+            )
+          ),
+          React.createElement(
+            "main",
+            { style: { width: isMobile ? "100%" : "70%", padding: "24px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "18px" } },
+            React.createElement(
+              "section",
+              {
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px"
+                }
+              },
+              React.createElement(
+                "div",
+                { style: { color: "#c4b5fd", fontSize: "13px", fontWeight: 700 } },
+                "Pipeline Flow 3D"
+              ),
+              React.createElement(PipelineFlow3D, {
+                pipeline,
+                isRunning: isRunningFlow,
+                runResults
+              })
+            ),
+            React.createElement(
+              "div",
+              { style: { display: "inline-flex", background: "#171722", borderRadius: "12px", border: "1px solid #2e2e42", width: "fit-content" } },
+              React.createElement("button", { onClick: () => { setMode("encrypt"); resetRunViews(); }, style: { border: "none", background: mode === "encrypt" ? "#7c3aed" : "transparent", color: "#fff", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "ENCRYPT"),
+              React.createElement("button", { onClick: () => { setMode("decrypt"); resetRunViews(); }, style: { border: "none", background: mode === "decrypt" ? "#7c3aed" : "transparent", color: "#fff", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "DECRYPT")
+            ),
+            React.createElement(
+              "label",
+              { style: { display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px", color: "#ddd6fe" } },
+              mode === "encrypt" ? "Plaintext" : "Ciphertext",
+              React.createElement("textarea", {
+                value: inputText,
+                onChange: (event) => {
+                  setInputText(event.target.value);
+                  resetRunViews();
+                },
+                rows: 8,
+                placeholder: mode === "encrypt" ? "Type plaintext to encrypt..." : "Paste ciphertext to decrypt...",
+                style: { resize: "vertical", background: "#1a1a24", border: "1px solid #333349", borderRadius: "12px", color: "#fff", padding: "12px", fontSize: "14px", minHeight: "180px" }
+              })
+            ),
+            pipeline.length >= 3 ? React.createElement("div", { style: { background: "#171722", border: "1px solid #2e2e42", borderRadius: "10px", padding: "10px", color: "#a8accf", fontSize: "12px" } }, React.createElement("div", { style: { color: "#c4b5fd", marginBottom: "4px", fontWeight: 600 } }, "Live Preview"), livePreviewError ? React.createElement("div", { style: { color: "#fca5a5" } }, livePreviewError) : React.createElement("div", { style: { wordBreak: "break-word" } }, livePreview || "Type to preview output...")) : null,
+            React.createElement(
+              "button",
+              {
+                disabled: !canRun,
+                onClick: () => {
+                  const result = executePipelineSafe(pipeline, inputText, mode);
+                  setRunResults(result.steps);
+                  setNodeErrors(result.nodeErrors);
+                  setIsRunningFlow(true);
+                  if (runTimerRef.current) clearTimeout(runTimerRef.current);
+                  runTimerRef.current = setTimeout(() => setIsRunningFlow(false), 2000);
+                },
+                style: { background: canRun ? "#7c3aed" : "#38384a", border: "none", borderRadius: "12px", color: canRun ? "#fff" : "#9aa", padding: "14px 20px", fontSize: "16px", fontWeight: 700, cursor: canRun ? "pointer" : "not-allowed", width: "220px" }
+              },
+              "Run Pipeline"
+            ),
+            React.createElement(
+              "section",
+              { style: { background: "#151520", border: "1px solid #2f2f42", borderRadius: "14px", padding: "14px" } },
+              React.createElement(
+                "div",
+                { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "8px" } },
+                React.createElement("h3", { style: { margin: 0, fontSize: "16px", color: "#c4b5fd" } }, "Output"),
+                React.createElement(
+                  "div",
+                  { style: { display: "flex", gap: "8px" } },
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(finalOutput); setToast({ type: "success", message: "Output copied." }); }, disabled: !finalOutput, style: { border: "1px solid #4b3c73", borderRadius: "8px", background: finalOutput ? "#2b2344" : "#252537", color: finalOutput ? "#e9ddff" : "#8c8ca3", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy"),
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(toBase64(finalOutput)); setToast({ type: "success", message: "Base64 output copied." }); }, disabled: !finalOutput, style: { border: "1px solid #4b3c73", borderRadius: "8px", background: finalOutput ? "#2b2344" : "#252537", color: finalOutput ? "#e9ddff" : "#8c8ca3", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy as Base64")
+                )
+              ),
+              React.createElement("div", { style: { background: "#0f0f18", border: "1px solid #2f2f42", borderRadius: "10px", minHeight: "64px", padding: "10px", fontFamily: "Consolas, Monaco, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#e5e7eb" } }, finalOutput || "Run the pipeline to see output."),
+              React.createElement("div", { style: { marginTop: "10px", display: "flex", flexWrap: "wrap", gap: "10px", fontSize: "12px", color: "#b9bdd9" } },
+                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Nodes: ${pipeline.length}`),
+                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Input length: ${inputLength} chars`),
+                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Output length: ${outputLength} chars`),
+                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Expansion ratio: ${expansionRatio}x`)
+              )
+            ),
+            toast ? React.createElement("div", { style: { position: "fixed", right: "20px", bottom: "20px", background: toast.type === "error" ? "#3a1414" : "#1f2d1f", border: `1px solid ${toast.type === "error" ? "#7f1d1d" : "#166534"}`, color: toast.type === "error" ? "#fecaca" : "#dcfce7", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", zIndex: 1200 } }, toast.message) : null
+          )
+        );
+      }
+
+      function HeroExperience() {
+        const [view, setView] = useState("hero");
+        const [demoOpen, setDemoOpen] = useState(false);
+        const [isDesktop, setIsDesktop] = useState(typeof window !== "undefined" ? window.innerWidth >= 1024 : true);
+        const [loadRobot, setLoadRobot] = useState(false);
+        const [demoIndex, setDemoIndex] = useState(0);
+
+        const demoFrames = [
+          {
+            title: "Layer 1: Caesar Shift",
+            source: "Hackathon winners",
+            result: "Kdfndwkrq zlqqhuv",
+            chip: "Fast obfuscation"
+          },
+          {
+            title: "Layer 2: XOR Key Mask",
+            source: "Kdfndwkrq zlqqhuv",
+            result: "2a07050d0f130f17100a0f0e14121415",
+            chip: "Hex-safe transport"
+          },
+          {
+            title: "Layer 3: Vigenere Pass",
+            source: "2a07050d0f130f17100a0f0e14121415",
+            result: "2t07050w0y130u17100x0f0x14121415",
+            chip: "Polyalphabetic hardening"
+          }
+        ];
+
+        useEffect(() => {
+          const onResize = () => setIsDesktop(window.innerWidth >= 1024);
+          window.addEventListener("resize", onResize);
+          return () => window.removeEventListener("resize", onResize);
+        }, []);
+
+        useEffect(() => {
+          const timeout = setTimeout(() => setLoadRobot(true), 650);
+          return () => clearTimeout(timeout);
+        }, []);
+
+        useEffect(() => {
+          const intervalId = setInterval(() => {
+            setDemoIndex((prev) => (prev + 1) % demoFrames.length);
+          }, 2200);
+          return () => clearInterval(intervalId);
+        }, [demoFrames.length]);
+
+        const activeDemo = demoFrames[demoIndex];
+
+        if (view === "app") {
+          return React.createElement(
+            AnimatePresence,
+            { mode: "wait" },
+            React.createElement(
+              motion.div,
+              {
+                key: "workspace-view",
+                initial: { y: 80, opacity: 0 },
+                animate: { y: 0, opacity: 1 },
+                exit: { y: 40, opacity: 0 },
+                transition: { duration: 0.45, ease: "easeOut" }
+              },
+              React.createElement(CipherWorkbench, {
+                onBackToHero: () => setView("hero")
+              })
+            )
+          );
+        }
+
+        return React.createElement(
+          "div",
+          { style: { background: "#0f0f13", color: "#ffffff", minHeight: "100vh" } },
+          React.createElement(
+            motion.section,
+            {
+              initial: { opacity: 0, y: 12 },
+              animate: { opacity: 1, y: 0 },
+              transition: { duration: 0.45, ease: "easeOut" },
+              style: {
+                minHeight: "100vh",
+                display: "grid",
+                gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+                alignItems: "center",
+                padding: isDesktop ? "64px" : "28px",
+                boxSizing: "border-box",
+                position: "relative",
+                overflow: "hidden"
+              }
+            },
+            React.createElement(
+              "div",
+              { style: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "18px", maxWidth: "620px" } },
+              React.createElement(
+                motion.div,
+                {
+                  initial: { opacity: 0, y: -10 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: 0.1, duration: 0.4 },
+                  style: {
+                    border: "1px solid rgba(124,58,237,0.5)",
+                    background: "rgba(124,58,237,0.1)",
+                    color: "#a855f7",
+                    padding: "6px 16px",
+                    borderRadius: "999px",
+                    fontSize: "0.8rem"
+                  }
+                },
+                "✦ Node-Based Cascade Encryption"
+              ),
+              React.createElement(
+                "div",
+                null,
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.2, duration: 0.5 }, style: { margin: 0, color: "#ffffff", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Build Your"),
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.3, duration: 0.5 }, style: { margin: 0, color: "#ffffff", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Encryption"),
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.4, duration: 0.5 }, style: { margin: 0, fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1, background: "linear-gradient(135deg, #7c3aed, #ec4899)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } }, "Pipeline.")
+              ),
+              React.createElement(
+                motion.p,
+                {
+                  initial: { opacity: 0 },
+                  animate: { opacity: 1 },
+                  transition: { delay: 0.5, duration: 0.5 },
+                  style: { color: "#94a3b8", fontSize: "1.1rem", lineHeight: 1.7, maxWidth: "480px", margin: 0 }
+                },
+                "Stack cipher algorithms like building blocks. Watch your data transform through every layer. Decrypt it back with one click."
+              ),
+              React.createElement(
+                motion.div,
+                { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: 0.6, duration: 0.4 }, style: { display: "flex", gap: "12px", flexWrap: "wrap" } },
+                React.createElement(
+                  motion.button,
+                  {
+                    whileHover: { scale: 1.05 },
+                    onClick: () => setView("app"),
+                    style: {
+                      border: "none",
+                      cursor: "pointer",
+                      background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                      color: "#fff",
+                      padding: "14px 32px",
+                      borderRadius: "12px",
+                      fontWeight: 700,
+                      fontSize: "1rem"
+                    }
+                  },
+                  "Enter Workspace →"
+                ),
+                React.createElement(
+                  motion.button,
+                  {
+                    whileHover: { borderColor: "rgba(124,58,237,0.8)" },
+                    onClick: () => setDemoOpen(true),
+                    style: {
+                      cursor: "pointer",
+                      background: "transparent",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      color: "#ffffff",
+                      padding: "14px 32px",
+                      borderRadius: "12px",
+                      fontWeight: 600,
+                      fontSize: "1rem"
+                    }
+                  },
+                  "See Cascade Demo"
+                )
+              ),
+              React.createElement(
+                "div",
+                { style: { display: "flex", flexWrap: "wrap", gap: "10px" } },
+                ...[
+                  { text: "6 Ciphers Available", dot: "#a855f7", delay: 0.7 },
+                  { text: "Real-time Preview", dot: "#22c55e", delay: 0.8 },
+                  { text: "Full Round-Trip", dot: "#3b82f6", delay: 0.9 }
+                ].map((item) =>
+                  React.createElement(
+                    motion.div,
+                    {
+                      key: item.text,
+                      initial: { opacity: 0, y: 10 },
+                      animate: { opacity: 1, y: 0 },
+                      transition: { delay: item.delay, duration: 0.35 },
+                      style: {
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        fontSize: "0.8rem",
+                        color: "#cbd5e1",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px"
+                      }
+                    },
+                    React.createElement("span", { style: { width: "7px", height: "7px", borderRadius: "50%", background: item.dot, display: "inline-block" } }),
+                    item.text
+                  )
+                )
+              )
+            ),
+            React.createElement(
+              motion.div,
+              {
+                initial: { opacity: 0, x: 30 },
+                animate: { opacity: 1, x: 0 },
+                transition: { delay: 0.3, duration: 0.65, ease: "easeOut" },
+                style: {
+                  width: "100%",
+                  height: isDesktop ? "600px" : "350px",
+                  position: "relative",
+                  background: "radial-gradient(ellipse at center, rgba(124,58,237,0.15) 0%, transparent 70%)"
+                }
+              },
+              React.createElement(
+                "div",
+                { style: { width: "100%", height: "100%" } },
+                loadRobot
+                  ? React.createElement(
+                      Suspense,
+                      {
+                        fallback: React.createElement(
+                          "div",
+                          {
+                            style: {
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#c4b5fd",
+                              background: "linear-gradient(180deg, rgba(124,58,237,0.08), rgba(236,72,153,0.04))",
+                              border: "1px solid rgba(124,58,237,0.25)",
+                              borderRadius: "16px"
+                            }
+                          },
+                          "Loading 3D robot..."
+                        )
+                      },
+                      React.createElement(LazySpline, { scene: SPLINE_URL, style: { width: "100%", height: "100%" } })
+                    )
+                  : React.createElement(
+                      "div",
+                      {
+                        style: {
+                          width: "100%",
+                          height: "100%",
+                          border: "1px solid rgba(124,58,237,0.25)",
+                          borderRadius: "16px",
+                          background: "linear-gradient(180deg, rgba(124,58,237,0.08), rgba(236,72,153,0.04))",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexDirection: "column",
+                          gap: "12px",
+                          color: "#c4b5fd"
+                        }
+                      },
+                      React.createElement("div", null, "Robot preview is optimizing..."),
+                      React.createElement(
+                        "button",
+                        {
+                          onClick: () => setLoadRobot(true),
+                          style: {
+                            border: "1px solid #4b3c73",
+                            background: "#231f36",
+                            color: "#e9ddff",
+                            borderRadius: "10px",
+                            padding: "8px 12px",
+                            cursor: "pointer"
+                          }
+                        },
+                        "Load Robot"
+                      )
+                    )
+              )
+            )
+          ),
+          React.createElement(
+            AnimatePresence,
+            null,
+            demoOpen
+              ? React.createElement(
+                  motion.div,
+                  {
+                    initial: { opacity: 0 },
+                    animate: { opacity: 1 },
+                    exit: { opacity: 0 },
+                    style: {
+                      position: "fixed",
+                      inset: 0,
+                      zIndex: 1400,
+                      background: "rgba(8,8,12,0.8)",
+                      backdropFilter: "blur(8px)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "20px",
+                      boxSizing: "border-box"
+                    }
+                  },
+                  React.createElement(
+                    motion.div,
+                    {
+                      initial: { y: 24, opacity: 0 },
+                      animate: { y: 0, opacity: 1 },
+                      exit: { y: 24, opacity: 0 },
+                      transition: { duration: 0.35 },
+                      style: {
+                        width: "min(900px, 100%)",
+                        background: "#131320",
+                        border: "1px solid #2f2f42",
+                        borderRadius: "16px",
+                        padding: "20px",
+                        boxSizing: "border-box"
+                      }
+                    },
+                    React.createElement(
+                      "div",
+                      {
+                        style: {
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "14px"
+                        }
+                      },
+                      React.createElement("h3", { style: { margin: 0, color: "#c4b5fd" } }, "Cascade Demo Reel"),
+                      React.createElement(
+                        "button",
+                        {
+                          onClick: () => setDemoOpen(false),
+                          style: {
+                            border: "1px solid #4b3c73",
+                            background: "#221c33",
+                            color: "#f3e8ff",
+                            borderRadius: "10px",
+                            padding: "8px 10px",
+                            cursor: "pointer"
+                          }
+                        },
+                        "Close"
+                      )
+                    ),
+                    React.createElement(
+                      AnimatePresence,
+                      { mode: "wait" },
+                      React.createElement(
+                        motion.div,
+                        {
+                          key: activeDemo.title,
+                          initial: { opacity: 0, y: 12 },
+                          animate: { opacity: 1, y: 0 },
+                          exit: { opacity: 0, y: -12 },
+                          transition: { duration: 0.3 },
+                          style: {
+                            background: "#181828",
+                            border: "1px solid #31314a",
+                            borderRadius: "12px",
+                            padding: "14px"
+                          }
+                        },
+                        React.createElement("div", { style: { display: "inline-flex", border: "1px solid #4b3c73", color: "#d8b4fe", borderRadius: "999px", padding: "4px 10px", fontSize: "12px", marginBottom: "12px" } }, activeDemo.chip),
+                        React.createElement("h4", { style: { margin: "0 0 10px 0", color: "#e6e8ff", fontSize: "20px" } }, activeDemo.title),
+                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "#94a3b8", fontSize: "13px", marginBottom: "8px", wordBreak: "break-word" } }, `IN  ${activeDemo.source}`),
+                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "#c4b5fd", fontSize: "13px", wordBreak: "break-word" } }, `OUT ${activeDemo.result}`)
+                      )
+                    ),
+                    React.createElement(
+                      "div",
+                      { style: { marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap" } },
+                      ...[
+                        "Visualized step-by-step transformation",
+                        "Error feedback at exact failing layer",
+                        "Live preview while typing"
+                      ].map((line) =>
+                        React.createElement("div", { key: line, style: { background: "#1c1c2d", border: "1px solid #32324a", borderRadius: "10px", padding: "8px 10px", color: "#cbd5e1", fontSize: "13px" } }, line)
+                      )
+                    ),
+                    React.createElement(
+                      motion.button,
+                      {
+                        whileHover: { scale: 1.03 },
+                        onClick: () => {
+                          setDemoOpen(false);
+                          setView("app");
+                        },
+                        style: {
+                          marginTop: "14px",
+                          border: "none",
+                          background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                          color: "#fff",
+                          borderRadius: "10px",
+                          padding: "12px 14px",
+                          cursor: "pointer",
+                          fontWeight: 700
+                        }
+                      },
+                      "Try It Live in Workspace"
+                    )
+                  )
+                )
+              : null
+          )
+        );
+      }
+
+      const root = createRoot(document.getElementById("root"));
+      root.render(React.createElement(HeroExperience));
+    </script>
+  </body>
+</html>
