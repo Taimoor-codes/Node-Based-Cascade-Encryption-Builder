@@ -242,6 +242,13 @@
           setNodeErrors({});
         };
 
+        const handleMoveNode = (event, nodeId, direction) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setPipeline((prev) => moveNode(prev, nodeId, direction));
+          resetRunViews();
+        };
+
         const copyToClipboard = async (text) => {
           if (!text) return;
           if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -540,8 +547,8 @@
                     React.createElement(
                       "div",
                       { style: { display: "flex", gap: "6px" } },
-                      React.createElement("button", { disabled: index === 0, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "up")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === 0 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === 0 ? "var(--color-muted)" : "var(--color-text)", cursor: index === 0 ? "not-allowed" : "pointer" } }, "UP"),
-                      React.createElement("button", { disabled: index === pipeline.length - 1, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "down")); resetRunViews(); }, style: { width: "46px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === pipeline.length - 1 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === pipeline.length - 1 ? "var(--color-muted)" : "var(--color-text)", cursor: index === pipeline.length - 1 ? "not-allowed" : "pointer" } }, "DOWN"),
+                      React.createElement("button", { type: "button", disabled: index === 0, onClick: (event) => handleMoveNode(event, node.id, "up"), style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === 0 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === 0 ? "var(--color-muted)" : "var(--color-text)", cursor: index === 0 ? "not-allowed" : "pointer" } }, "UP"),
+                      React.createElement("button", { type: "button", disabled: index === pipeline.length - 1, onClick: (event) => handleMoveNode(event, node.id, "down"), style: { width: "46px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === pipeline.length - 1 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === pipeline.length - 1 ? "var(--color-muted)" : "var(--color-text)", cursor: index === pipeline.length - 1 ? "not-allowed" : "pointer" } }, "DOWN"),
                       React.createElement("button", { onClick: (event) => { event.stopPropagation(); setPipeline((prev) => removeNode(prev, node.id)); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-error)", background: "rgba(244,63,94,0.12)", color: "var(--color-error)", cursor: "pointer" } }, "x")
                     )
                   ),
@@ -657,8 +664,8 @@
                 React.createElement(
                   "div",
                   { style: { display: "flex", gap: "8px" } },
-                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(finalOutput); setToast({ type: "success", message: "Output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy"),
-                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(toBase64(finalOutput)); setToast({ type: "success", message: "Base64 output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy as Base64")
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyToClipboard(finalOutput); setToast({ type: "success", message: "Output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy"),
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyToClipboard(toBase64(finalOutput)); setToast({ type: "success", message: "Base64 output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy as Base64")
                 )
               ),
               React.createElement("div", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "10px", minHeight: "64px", padding: "10px", fontFamily: "Consolas, Monaco, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "var(--color-text)" } }, finalOutput || "Run the pipeline to see output."),
