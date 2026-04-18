@@ -4,8 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CipherStack</title>
+    <style>
+      :root {
+        --color-bg: #020817;
+        --color-surface: #0f1729;
+        --color-surface-2: #131f36;
+        --color-border: #1e3a5f;
+        --color-primary: #06b6d4;
+        --color-secondary: #0ea5e9;
+        --color-gradient: linear-gradient(135deg, #06b6d4, #0ea5e9);
+        --color-text: #f1f5f9;
+        --color-muted: #64748b;
+        --color-success: #10b981;
+        --color-error: #f43f5e;
+      }
+    </style>
   </head>
-  <body style="margin: 0; background: #0f0f13; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <body style="margin: 0; background: var(--color-bg); color: var(--color-text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
     <div id="root" style="height: 100vh;"></div>
 
     <script type="module">
@@ -23,6 +38,40 @@
         removeNode,
         updateNodeConfig
       } from "./pipeline.js";
+
+      // Switch ACTIVE_THEME to "legacy" anytime to quickly restore the old palette.
+      const THEMES = {
+        cyber: {
+          "color-bg": "#020817",
+          "color-surface": "#0f1729",
+          "color-surface-2": "#131f36",
+          "color-border": "#1e3a5f",
+          "color-primary": "#06b6d4",
+          "color-secondary": "#0ea5e9",
+          "color-gradient": "linear-gradient(135deg, #06b6d4, #0ea5e9)",
+          "color-text": "#f1f5f9",
+          "color-muted": "#64748b",
+          "color-success": "#10b981",
+          "color-error": "#f43f5e"
+        },
+        legacy: {
+          "color-bg": "#0f0f13",
+          "color-surface": "#1a1a24",
+          "color-surface-2": "#171722",
+          "color-border": "#2f2f42",
+          "color-primary": "#7c3aed",
+          "color-secondary": "#a855f7",
+          "color-gradient": "linear-gradient(135deg, #7c3aed, #a855f7)",
+          "color-text": "#ffffff",
+          "color-muted": "#94a3b8",
+          "color-success": "#10b981",
+          "color-error": "#f43f5e"
+        }
+      };
+      const ACTIVE_THEME = "cyber";
+      Object.entries(THEMES[ACTIVE_THEME]).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(`--${key}`, value);
+      });
 
       const SPLINE_URL = "https://prod.spline.design/o37ssfr-6egG27oh/scene.splinecode";
       const LazySpline = React.lazy(() =>
@@ -49,7 +98,7 @@
 
       const badgeColorMap = {
         caesar: "#4f46e5",
-        xor: "#7c3aed",
+        xor: "var(--color-primary)",
         vigenere: "#db2777",
         railfence: "#0891b2",
         base64: "#16a34a",
@@ -237,8 +286,8 @@
               minHeight: "100vh",
               display: "flex",
               flexDirection: isMobile ? "column" : "row",
-              background: "#0f0f13",
-              color: "#ffffff"
+              background: "var(--color-bg)",
+              color: "var(--color-text)"
             }
           },
           React.createElement(
@@ -247,8 +296,8 @@
               style: {
                 width: isMobile ? "100%" : "30%",
                 minWidth: isMobile ? "auto" : "300px",
-                borderRight: isMobile ? "none" : "1px solid #2a2a38",
-                borderBottom: isMobile ? "1px solid #2a2a38" : "none",
+                borderRight: isMobile ? "none" : "1px solid var(--color-border)",
+                borderBottom: isMobile ? "1px solid var(--color-border)" : "none",
                 padding: "20px",
                 boxSizing: "border-box",
                 overflowY: "auto"
@@ -282,7 +331,7 @@
             React.createElement(
               "div",
               { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "14px" } },
-              React.createElement("h2", { style: { margin: 0, color: "#a78bfa" } }, "CipherStack"),
+              React.createElement("h2", { style: { margin: 0, color: "var(--color-secondary)" } }, "CipherStack"),
               React.createElement(
                 "div",
                 { style: { display: "flex", gap: "6px" } },
@@ -292,9 +341,9 @@
                       {
                         onClick: onBackToHero,
                         style: {
-                          border: "1px solid #4b3c73",
-                          background: "#1f1a32",
-                          color: "#e9ddff",
+                          border: "1px solid var(--color-border)",
+                          background: "var(--color-surface)",
+                          color: "var(--color-text)",
                           borderRadius: "8px",
                           padding: "6px 10px",
                           cursor: "pointer",
@@ -321,9 +370,9 @@
                       URL.revokeObjectURL(url);
                     },
                     style: {
-                      background: "#231f36",
-                      border: "1px solid #4a3b79",
-                      color: "#e9ddff",
+                      background: "var(--color-surface)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)",
                       borderRadius: "8px",
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -342,9 +391,9 @@
                       }
                     },
                     style: {
-                      background: "#231f36",
-                      border: "1px solid #4a3b79",
-                      color: "#e9ddff",
+                      background: "var(--color-surface)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)",
                       borderRadius: "8px",
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -360,20 +409,20 @@
               {
                 style: {
                   marginBottom: "12px",
-                  border: "1px solid #2f2f42",
+                  border: "1px solid var(--color-border)",
                   borderRadius: "12px",
-                  background: "#14141d",
+                  background: "var(--color-surface-2)",
                   padding: "10px"
                 }
               },
               React.createElement(
                 "div",
-                { style: { color: "#c4b5fd", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
+                { style: { color: "var(--color-secondary)", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
                 "Quick Presets"
               ),
               React.createElement(
                 "div",
-                { style: { color: "#8fa0ba", fontSize: "11px", marginBottom: "8px" } },
+                { style: { color: "var(--color-muted)", fontSize: "11px", marginBottom: "8px" } },
                 "Load complete starter pipelines"
               ),
               React.createElement(
@@ -381,17 +430,17 @@
                 { style: { display: "grid", gap: "8px" } },
                 React.createElement(
                   "button",
-                  { onClick: () => loadPreset("beginner"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  { onClick: () => loadPreset("beginner"), style: { background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
                   "Beginner (3 nodes)"
                 ),
                 React.createElement(
                   "button",
-                  { onClick: () => loadPreset("intermediate"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  { onClick: () => loadPreset("intermediate"), style: { background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
                   "Intermediate (5 nodes)"
                 ),
                 React.createElement(
                   "button",
-                  { onClick: () => loadPreset("advanced"), style: { background: "#1a1a24", color: "#fff", border: "1px solid #343447", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
+                  { onClick: () => loadPreset("advanced"), style: { background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "9px", padding: "9px", textAlign: "left", cursor: "pointer" } },
                   "Advanced (6 nodes)"
                 )
               )
@@ -401,20 +450,20 @@
               {
                 style: {
                   marginBottom: "16px",
-                  border: "1px solid #2f2f42",
+                  border: "1px solid var(--color-border)",
                   borderRadius: "12px",
-                  background: "#14141d",
+                  background: "var(--color-surface-2)",
                   padding: "10px"
                 }
               },
               React.createElement(
                 "div",
-                { style: { color: "#c4b5fd", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
+                { style: { color: "var(--color-secondary)", fontSize: "12px", fontWeight: 700, marginBottom: "8px" } },
                 "Manual Node Builder"
               ),
               React.createElement(
                 "div",
-                { style: { color: "#8fa0ba", fontSize: "11px", marginBottom: "8px" } },
+                { style: { color: "var(--color-muted)", fontSize: "11px", marginBottom: "8px" } },
                 "Add individual ciphers one by one"
               ),
               React.createElement(
@@ -430,9 +479,9 @@
                         resetRunViews();
                       },
                       style: {
-                        background: "#1a1a24",
-                        color: "#fff",
-                        border: "1px solid #343447",
+                        background: "var(--color-surface)",
+                        color: "var(--color-text)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "9px",
                         padding: "9px",
                         textAlign: "left",
@@ -445,7 +494,7 @@
               )
             ),
             pipeline.length < 3
-              ? React.createElement("div", { style: { background: "#2b1b3a", border: "1px solid #6d28d9", color: "#e9d5ff", borderRadius: "10px", padding: "10px", marginBottom: "10px", fontSize: "13px" } }, "Add at least 3 nodes to run the pipeline")
+              ? React.createElement("div", { style: { background: "rgba(6,182,212,0.12)", border: "1px solid var(--color-primary)", color: "var(--color-text)", borderRadius: "10px", padding: "10px", marginBottom: "10px", fontSize: "13px" } }, "Add at least 3 nodes to run the pipeline")
               : null,
             React.createElement(
               "div",
@@ -455,11 +504,11 @@
                 const step = resultByNodeId.get(node.id);
                 const nodeError = nodeErrors[node.id];
                 const isExpanded = expandedNodeId === node.id;
-                const badgeColor = badgeColorMap[node.cipherKey] || "#7c3aed";
+                const badgeColor = badgeColorMap[node.cipherKey] || "var(--color-primary)";
 
                 const nodeCard = React.createElement(
                   "div",
-                  { key: node.id, onClick: () => setExpandedNodeId((prev) => (prev === node.id ? null : node.id)), style: { background: "#1a1a24", border: "1px solid #2f2f42", borderRadius: "12px", padding: "12px", cursor: "pointer" } },
+                  { key: node.id, onClick: () => setExpandedNodeId((prev) => (prev === node.id ? null : node.id)), style: { background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "12px", padding: "12px", cursor: "pointer" } },
                   React.createElement(
                     "div",
                     { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "10px" } },
@@ -467,14 +516,14 @@
                       "div",
                       { style: { display: "flex", alignItems: "center", gap: "8px" } },
                       React.createElement("span", { style: { fontWeight: 600 } }, cipher.name),
-                      React.createElement("span", { style: { background: badgeColor, color: "#fff", fontSize: "11px", padding: "3px 7px", borderRadius: "999px", textTransform: "uppercase" } }, node.cipherKey)
+                      React.createElement("span", { style: { background: badgeColor, color: "var(--color-text)", fontSize: "11px", padding: "3px 7px", borderRadius: "999px", textTransform: "uppercase" } }, node.cipherKey)
                     ),
                     React.createElement(
                       "div",
                       { style: { display: "flex", gap: "6px" } },
-                      React.createElement("button", { disabled: index === 0, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "up")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #42425a", background: index === 0 ? "#222230" : "#2d2d3f", color: index === 0 ? "#6f6f86" : "#fff", cursor: index === 0 ? "not-allowed" : "pointer" } }, "↑"),
-                      React.createElement("button", { disabled: index === pipeline.length - 1, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "down")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #42425a", background: index === pipeline.length - 1 ? "#222230" : "#2d2d3f", color: index === pipeline.length - 1 ? "#6f6f86" : "#fff", cursor: index === pipeline.length - 1 ? "not-allowed" : "pointer" } }, "↓"),
-                      React.createElement("button", { onClick: (event) => { event.stopPropagation(); setPipeline((prev) => removeNode(prev, node.id)); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid #663344", background: "#3a1f2a", color: "#ffd4e1", cursor: "pointer" } }, "×")
+                      React.createElement("button", { disabled: index === 0, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "up")); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === 0 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === 0 ? "var(--color-muted)" : "var(--color-text)", cursor: index === 0 ? "not-allowed" : "pointer" } }, "UP"),
+                      React.createElement("button", { disabled: index === pipeline.length - 1, onClick: (event) => { event.stopPropagation(); setPipeline((prev) => moveNode(prev, node.id, "down")); resetRunViews(); }, style: { width: "46px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-border)", background: index === pipeline.length - 1 ? "var(--color-surface-2)" : "var(--color-surface)", color: index === pipeline.length - 1 ? "var(--color-muted)" : "var(--color-text)", cursor: index === pipeline.length - 1 ? "not-allowed" : "pointer" } }, "DOWN"),
+                      React.createElement("button", { onClick: (event) => { event.stopPropagation(); setPipeline((prev) => removeNode(prev, node.id)); resetRunViews(); }, style: { width: "28px", height: "28px", borderRadius: "8px", border: "1px solid var(--color-error)", background: "rgba(244,63,94,0.12)", color: "var(--color-error)", cursor: "pointer" } }, "x")
                     )
                   ),
                   React.createElement(
@@ -483,7 +532,7 @@
                     ...(cipher.configFields || []).map((field) =>
                       React.createElement(
                         "label",
-                        { key: `${node.id}-${field.key}`, onClick: (event) => event.stopPropagation(), style: { display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "#d1d5db" } },
+                        { key: `${node.id}-${field.key}`, onClick: (event) => event.stopPropagation(), style: { display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "var(--color-text)" } },
                         field.label,
                         React.createElement("input", {
                           type: field.type === "number" ? "number" : "text",
@@ -495,14 +544,14 @@
                             setPipeline((prev) => updateNodeConfig(prev, node.id, { ...node.config, [field.key]: nextValue }));
                             resetRunViews();
                           },
-                          style: { background: "#11111a", border: "1px solid #343447", color: "#fff", borderRadius: "8px", padding: "8px 10px" }
+                          style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", color: "var(--color-text)", borderRadius: "8px", padding: "8px 10px" }
                         })
                       )
                     )
                   ),
-                  isExpanded ? React.createElement("div", { style: { marginTop: "10px", padding: "8px", borderRadius: "8px", border: "1px solid #383854", background: "#161626", color: "#cfd1f1", fontSize: "12px" } }, cipher.description) : null,
-                  nodeError ? React.createElement("div", { style: { marginTop: "10px", borderRadius: "8px", border: "1px solid #7f1d1d", background: "#321313", color: "#fecaca", fontSize: "12px", padding: "8px" } }, `Error: ${nodeError}`) : null,
-                  step ? React.createElement("div", { style: { marginTop: "10px", borderTop: "1px solid #2e2e42", paddingTop: "8px", fontSize: "12px", color: "#c9c9d9" } }, `IN: ${truncate(step.input, 40)}`, React.createElement("div", null, `OUT: ${truncate(step.output, 40)}`)) : null
+                  isExpanded ? React.createElement("div", { style: { marginTop: "10px", padding: "8px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "var(--color-surface-2)", color: "var(--color-text)", fontSize: "12px" } }, cipher.description) : null,
+                  nodeError ? React.createElement("div", { style: { marginTop: "10px", borderRadius: "8px", border: "1px solid var(--color-error)", background: "rgba(244,63,94,0.12)", color: "var(--color-error)", fontSize: "12px", padding: "8px" } }, `Error: ${nodeError}`) : null,
+                  step ? React.createElement("div", { style: { marginTop: "10px", borderTop: "1px solid var(--color-border)", paddingTop: "8px", fontSize: "12px", color: "var(--color-muted)" } }, `IN: ${truncate(step.input, 40)}`, React.createElement("div", null, `OUT: ${truncate(step.output, 40)}`)) : null
                 );
 
                 if (index === pipeline.length - 1) return [nodeCard];
@@ -510,9 +559,9 @@
                   nodeCard,
                   React.createElement(
                     "div",
-                    { key: `${node.id}-flow`, style: { display: "flex", alignItems: "center", gap: "8px", marginLeft: "6px", color: "#c4b5fd" } },
-                    React.createElement("span", null, "→"),
-                    React.createElement("span", { style: { background: "#2b2740", border: "1px solid #4c3a74", borderRadius: "999px", padding: "3px 8px", fontSize: "11px", color: "#ddd6fe" } }, step ? truncate(step.output, 40) : "run pipeline to view")
+                    { key: `${node.id}-flow`, style: { display: "flex", alignItems: "center", gap: "8px", marginLeft: "6px", color: "var(--color-secondary)" } },
+                    React.createElement("span", null, "->"),
+                    React.createElement("span", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "3px 8px", fontSize: "11px", color: "var(--color-text)" } }, step ? truncate(step.output, 40) : "run pipeline to view")
                   )
                 ];
               })
@@ -532,7 +581,7 @@
               },
               React.createElement(
                 "div",
-                { style: { color: "#c4b5fd", fontSize: "13px", fontWeight: 700 } },
+                { style: { color: "var(--color-secondary)", fontSize: "13px", fontWeight: 700 } },
                 "Pipeline Flow 3D"
               ),
               React.createElement(PipelineFlow3D, {
@@ -543,13 +592,13 @@
             ),
             React.createElement(
               "div",
-              { style: { display: "inline-flex", background: "#171722", borderRadius: "12px", border: "1px solid #2e2e42", width: "fit-content" } },
-              React.createElement("button", { onClick: () => { setMode("encrypt"); resetRunViews(); }, style: { border: "none", background: mode === "encrypt" ? "#7c3aed" : "transparent", color: "#fff", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "ENCRYPT"),
-              React.createElement("button", { onClick: () => { setMode("decrypt"); resetRunViews(); }, style: { border: "none", background: mode === "decrypt" ? "#7c3aed" : "transparent", color: "#fff", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "DECRYPT")
+              { style: { display: "inline-flex", background: "var(--color-surface-2)", borderRadius: "12px", border: "1px solid var(--color-border)", width: "fit-content" } },
+              React.createElement("button", { onClick: () => { setMode("encrypt"); resetRunViews(); }, style: { border: "none", background: mode === "encrypt" ? "var(--color-primary)" : "transparent", color: "var(--color-text)", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "ENCRYPT"),
+              React.createElement("button", { onClick: () => { setMode("decrypt"); resetRunViews(); }, style: { border: "none", background: mode === "decrypt" ? "var(--color-primary)" : "transparent", color: "var(--color-text)", padding: "10px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 600 } }, "DECRYPT")
             ),
             React.createElement(
               "label",
-              { style: { display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px", color: "#ddd6fe" } },
+              { style: { display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px", color: "var(--color-text)" } },
               mode === "encrypt" ? "Plaintext" : "Ciphertext",
               React.createElement("textarea", {
                 value: inputText,
@@ -559,10 +608,10 @@
                 },
                 rows: 8,
                 placeholder: mode === "encrypt" ? "Type plaintext to encrypt..." : "Paste ciphertext to decrypt...",
-                style: { resize: "vertical", background: "#1a1a24", border: "1px solid #333349", borderRadius: "12px", color: "#fff", padding: "12px", fontSize: "14px", minHeight: "180px" }
+                style: { resize: "vertical", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "12px", color: "var(--color-text)", padding: "12px", fontSize: "14px", minHeight: "180px" }
               })
             ),
-            pipeline.length >= 3 ? React.createElement("div", { style: { background: "#171722", border: "1px solid #2e2e42", borderRadius: "10px", padding: "10px", color: "#a8accf", fontSize: "12px" } }, React.createElement("div", { style: { color: "#c4b5fd", marginBottom: "4px", fontWeight: 600 } }, "Live Preview"), livePreviewError ? React.createElement("div", { style: { color: "#fca5a5" } }, livePreviewError) : React.createElement("div", { style: { wordBreak: "break-word" } }, livePreview || "Type to preview output...")) : null,
+            pipeline.length >= 3 ? React.createElement("div", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "10px", color: "var(--color-muted)", fontSize: "12px" } }, React.createElement("div", { style: { color: "var(--color-secondary)", marginBottom: "4px", fontWeight: 600 } }, "Live Preview"), livePreviewError ? React.createElement("div", { style: { color: "var(--color-error)" } }, livePreviewError) : React.createElement("div", { style: { wordBreak: "break-word" } }, livePreview || "Type to preview output...")) : null,
             React.createElement(
               "button",
               {
@@ -575,33 +624,33 @@
                   if (runTimerRef.current) clearTimeout(runTimerRef.current);
                   runTimerRef.current = setTimeout(() => setIsRunningFlow(false), 2000);
                 },
-                style: { background: canRun ? "#7c3aed" : "#38384a", border: "none", borderRadius: "12px", color: canRun ? "#fff" : "#9aa", padding: "14px 20px", fontSize: "16px", fontWeight: 700, cursor: canRun ? "pointer" : "not-allowed", width: "220px" }
+                style: { background: canRun ? "var(--color-gradient)" : "var(--color-surface-2)", border: "none", borderRadius: "12px", color: canRun ? "var(--color-text)" : "var(--color-muted)", padding: "14px 20px", fontSize: "16px", fontWeight: 700, cursor: canRun ? "pointer" : "not-allowed", width: "220px" }
               },
               "Run Pipeline"
             ),
             React.createElement(
               "section",
-              { style: { background: "#151520", border: "1px solid #2f2f42", borderRadius: "14px", padding: "14px" } },
+              { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "14px" } },
               React.createElement(
                 "div",
                 { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "8px" } },
-                React.createElement("h3", { style: { margin: 0, fontSize: "16px", color: "#c4b5fd" } }, "Output"),
+                React.createElement("h3", { style: { margin: 0, fontSize: "16px", color: "var(--color-secondary)" } }, "Output"),
                 React.createElement(
                   "div",
                   { style: { display: "flex", gap: "8px" } },
-                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(finalOutput); setToast({ type: "success", message: "Output copied." }); }, disabled: !finalOutput, style: { border: "1px solid #4b3c73", borderRadius: "8px", background: finalOutput ? "#2b2344" : "#252537", color: finalOutput ? "#e9ddff" : "#8c8ca3", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy"),
-                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(toBase64(finalOutput)); setToast({ type: "success", message: "Base64 output copied." }); }, disabled: !finalOutput, style: { border: "1px solid #4b3c73", borderRadius: "8px", background: finalOutput ? "#2b2344" : "#252537", color: finalOutput ? "#e9ddff" : "#8c8ca3", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy as Base64")
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(finalOutput); setToast({ type: "success", message: "Output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy"),
+                  React.createElement("button", { onClick: async () => { if (!finalOutput) return; await copyTextToClipboard(toBase64(finalOutput)); setToast({ type: "success", message: "Base64 output copied." }); }, disabled: !finalOutput, style: { border: "1px solid var(--color-border)", borderRadius: "8px", background: finalOutput ? "var(--color-surface)" : "var(--color-surface-2)", color: finalOutput ? "var(--color-text)" : "var(--color-muted)", cursor: finalOutput ? "pointer" : "not-allowed", padding: "6px 10px" } }, "Copy as Base64")
                 )
               ),
-              React.createElement("div", { style: { background: "#0f0f18", border: "1px solid #2f2f42", borderRadius: "10px", minHeight: "64px", padding: "10px", fontFamily: "Consolas, Monaco, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#e5e7eb" } }, finalOutput || "Run the pipeline to see output."),
-              React.createElement("div", { style: { marginTop: "10px", display: "flex", flexWrap: "wrap", gap: "10px", fontSize: "12px", color: "#b9bdd9" } },
-                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Nodes: ${pipeline.length}`),
-                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Input length: ${inputLength} chars`),
-                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Output length: ${outputLength} chars`),
-                React.createElement("span", { style: { background: "#1b1b2a", border: "1px solid #31314a", borderRadius: "999px", padding: "4px 9px" } }, `Expansion ratio: ${expansionRatio}x`)
+              React.createElement("div", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "10px", minHeight: "64px", padding: "10px", fontFamily: "Consolas, Monaco, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "var(--color-text)" } }, finalOutput || "Run the pipeline to see output."),
+              React.createElement("div", { style: { marginTop: "10px", display: "flex", flexWrap: "wrap", gap: "10px", fontSize: "12px", color: "var(--color-muted)" } },
+                React.createElement("span", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 9px" } }, `Nodes: ${pipeline.length}`),
+                React.createElement("span", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 9px" } }, `Input length: ${inputLength} chars`),
+                React.createElement("span", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 9px" } }, `Output length: ${outputLength} chars`),
+                React.createElement("span", { style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 9px" } }, `Expansion ratio: ${expansionRatio}x`)
               )
             ),
-            toast ? React.createElement("div", { style: { position: "fixed", right: "20px", bottom: "20px", background: toast.type === "error" ? "#3a1414" : "#1f2d1f", border: `1px solid ${toast.type === "error" ? "#7f1d1d" : "#166534"}`, color: toast.type === "error" ? "#fecaca" : "#dcfce7", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", zIndex: 1200 } }, toast.message) : null
+            toast ? React.createElement("div", { style: { position: "fixed", right: "20px", bottom: "20px", background: toast.type === "error" ? "rgba(244,63,94,0.12)" : "rgba(16,185,129,0.12)", border: `1px solid ${toast.type === "error" ? "var(--color-error)" : "var(--color-success)"}`, color: toast.type === "error" ? "var(--color-error)" : "var(--color-success)", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", zIndex: 1200 } }, toast.message) : null
           )
         );
       }
@@ -726,7 +775,7 @@
 
         return React.createElement(
           "div",
-          { style: { background: "#0f0f13", color: "#ffffff", minHeight: "100vh" } },
+          { style: { background: "var(--color-bg)", color: "var(--color-text)", minHeight: "100vh" } },
           React.createElement(
             motion.section,
             {
@@ -754,22 +803,22 @@
                   animate: { opacity: 1, y: 0 },
                   transition: { delay: 0.1, duration: 0.4 },
                   style: {
-                    border: "1px solid rgba(124,58,237,0.5)",
-                    background: "rgba(124,58,237,0.1)",
-                    color: "#a855f7",
+                    border: "1px solid rgba(6,182,212,0.55)",
+                    background: "rgba(6,182,212,0.12)",
+                    color: "var(--color-secondary)",
                     padding: "6px 16px",
                     borderRadius: "999px",
                     fontSize: "0.8rem"
                   }
                 },
-                "✦ Node-Based Cascade Encryption"
+                "Node-Based Cascade Encryption"
               ),
               React.createElement(
                 "div",
                 null,
-                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.2, duration: 0.5 }, style: { margin: 0, color: "#ffffff", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Build Your"),
-                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.3, duration: 0.5 }, style: { margin: 0, color: "#ffffff", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Encryption"),
-                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.4, duration: 0.5 }, style: { margin: 0, fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1, background: "linear-gradient(135deg, #7c3aed, #ec4899)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } }, "Pipeline.")
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.2, duration: 0.5 }, style: { margin: 0, color: "var(--color-text)", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Build Your"),
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.3, duration: 0.5 }, style: { margin: 0, color: "var(--color-text)", fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1 } }, "Encryption"),
+                React.createElement(motion.h1, { initial: { opacity: 0, x: -30 }, animate: { opacity: 1, x: 0 }, transition: { delay: 0.4, duration: 0.5 }, style: { margin: 0, fontSize: isDesktop ? "4.5rem" : "3rem", fontWeight: 900, lineHeight: 1.1, background: "var(--color-gradient)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } }, "Pipeline.")
               ),
               React.createElement(
                 motion.p,
@@ -777,7 +826,7 @@
                   initial: { opacity: 0 },
                   animate: { opacity: 1 },
                   transition: { delay: 0.5, duration: 0.5 },
-                  style: { color: "#94a3b8", fontSize: "1.1rem", lineHeight: 1.7, maxWidth: "480px", margin: 0 }
+                  style: { color: "var(--color-muted)", fontSize: "1.1rem", lineHeight: 1.7, maxWidth: "480px", margin: 0 }
                 },
                 "Stack cipher algorithms like building blocks. Watch your data transform through every layer. Decrypt it back with one click."
               ),
@@ -792,26 +841,26 @@
                     style: {
                       border: "none",
                       cursor: "pointer",
-                      background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                      color: "#fff",
+                      background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+                      color: "var(--color-text)",
                       padding: "14px 32px",
                       borderRadius: "12px",
                       fontWeight: 700,
                       fontSize: "1rem"
                     }
                   },
-                  "Enter Workspace →"
+                  "Enter Workspace ->"
                 ),
                 React.createElement(
                   motion.button,
                   {
-                    whileHover: { borderColor: "rgba(124,58,237,0.8)" },
+                    whileHover: { borderColor: "rgba(6,182,212,0.9)" },
                     onClick: () => setDemoOpen(true),
                     style: {
                       cursor: "pointer",
                       background: "transparent",
                       border: "1px solid rgba(255,255,255,0.2)",
-                      color: "#ffffff",
+                      color: "var(--color-text)",
                       padding: "14px 32px",
                       borderRadius: "12px",
                       fontWeight: 600,
@@ -825,9 +874,9 @@
                 "div",
                 { style: { display: "flex", flexWrap: "wrap", gap: "10px" } },
                 ...[
-                  { text: "6 Ciphers Available", dot: "#a855f7", delay: 0.7 },
-                  { text: "Real-time Preview", dot: "#22c55e", delay: 0.8 },
-                  { text: "Full Round-Trip", dot: "#3b82f6", delay: 0.9 }
+                  { text: "6 Ciphers Available", dot: "var(--color-secondary)", delay: 0.7 },
+                  { text: "Real-time Preview", dot: "var(--color-success)", delay: 0.8 },
+                  { text: "Full Round-Trip", dot: "var(--color-primary)", delay: 0.9 }
                 ].map((item) =>
                   React.createElement(
                     motion.div,
@@ -842,7 +891,7 @@
                         padding: "8px 16px",
                         borderRadius: "8px",
                         fontSize: "0.8rem",
-                        color: "#cbd5e1",
+                        color: "var(--color-text)",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "8px"
@@ -882,7 +931,7 @@
                   },
                   React.createElement(
                     "div",
-                    { style: { color: "#d8b4fe", fontSize: "13px", fontWeight: 700 } },
+                    { style: { color: "var(--color-secondary)", fontSize: "13px", fontWeight: 700 } },
                     "Trusted by builders"
                   ),
                   React.createElement(
@@ -898,7 +947,7 @@
                           borderRadius: "999px",
                           border: "none",
                           cursor: "pointer",
-                          background: testimonialIndex === idx ? "#a855f7" : "#4b5563",
+                          background: testimonialIndex === idx ? "var(--color-secondary)" : "var(--color-border)",
                           transition: "all 0.2s ease"
                         },
                         "aria-label": `Show testimonial ${idx + 1}`
@@ -929,15 +978,15 @@
                       null,
                       React.createElement(
                         "div",
-                        { style: { marginBottom: "8px", color: "#facc15", fontSize: "13px" } },
-                        "★★★★★"
+                        { style: { marginBottom: "8px", color: "var(--color-secondary)", fontSize: "13px" } },
+                        "*****"
                       ),
                       React.createElement(
                         "p",
                         {
                           style: {
                             margin: 0,
-                            color: "#dbe3f0",
+                            color: "var(--color-text)",
                             lineHeight: 1.6,
                             fontSize: "14px"
                           }
@@ -946,8 +995,8 @@
                       ),
                       React.createElement(
                         "div",
-                        { style: { marginTop: "10px", color: "#9fb0c8", fontSize: "12px" } },
-                        `${testimonials[testimonialIndex].name} · ${testimonials[testimonialIndex].role}, ${testimonials[testimonialIndex].company}`
+                        { style: { marginTop: "10px", color: "var(--color-muted)", fontSize: "12px" } },
+                        `${testimonials[testimonialIndex].name} - ${testimonials[testimonialIndex].role}, ${testimonials[testimonialIndex].company}`
                       )
                     ),
                     React.createElement("img", {
@@ -975,7 +1024,7 @@
                   width: "100%",
                   height: isDesktop ? "600px" : "350px",
                   position: "relative",
-                  background: "radial-gradient(ellipse at center, rgba(124,58,237,0.15) 0%, transparent 70%)"
+                  background: "radial-gradient(ellipse at center, rgba(6,182,212,0.2) 0%, transparent 70%)"
                 }
               },
               React.createElement(
@@ -988,16 +1037,16 @@
                         style: {
                           width: "100%",
                           height: "100%",
-                          border: "1px solid rgba(124,58,237,0.25)",
+                          border: "1px solid rgba(14,165,233,0.4)",
                           borderRadius: "16px",
                           background:
-                            "linear-gradient(180deg, rgba(124,58,237,0.12), rgba(236,72,153,0.06))",
+                            "linear-gradient(180deg, rgba(6,182,212,0.16), rgba(14,165,233,0.08))",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexDirection: "column",
                           gap: "10px",
-                          color: "#c4b5fd",
+                          color: "var(--color-secondary)",
                           textAlign: "center",
                           padding: "14px",
                           boxSizing: "border-box"
@@ -1007,9 +1056,9 @@
                         "div",
                         {
                           style: {
-                            border: "1px solid rgba(124,58,237,0.5)",
-                            background: "rgba(124,58,237,0.12)",
-                            color: "#d8b4fe",
+                            border: "1px solid rgba(14,165,233,0.5)",
+                            background: "rgba(6,182,212,0.16)",
+                            color: "var(--color-secondary)",
                             borderRadius: "999px",
                             padding: "4px 10px",
                             fontSize: "12px",
@@ -1020,12 +1069,12 @@
                       ),
                       React.createElement(
                         "div",
-                        { style: { fontSize: "14px", color: "#e9d5ff", fontWeight: 600 } },
+                        { style: { fontSize: "14px", color: "var(--color-text)", fontWeight: 600 } },
                         "3D robot disabled for smoother performance"
                       ),
                       React.createElement(
                         "div",
-                        { style: { fontSize: "12px", color: "#a5b4c8", maxWidth: "260px" } },
+                        { style: { fontSize: "12px", color: "var(--color-muted)", maxWidth: "260px" } },
                         "On desktop/laptop, the full interactive robot is enabled automatically."
                       )
                     )
@@ -1042,9 +1091,9 @@
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: "#c4b5fd",
-                              background: "linear-gradient(180deg, rgba(124,58,237,0.08), rgba(236,72,153,0.04))",
-                              border: "1px solid rgba(124,58,237,0.25)",
+                              color: "var(--color-secondary)",
+                              background: "linear-gradient(180deg, rgba(6,182,212,0.12), rgba(14,165,233,0.06))",
+                              border: "1px solid rgba(14,165,233,0.4)",
                               borderRadius: "16px"
                             }
                           },
@@ -1059,15 +1108,15 @@
                         style: {
                           width: "100%",
                           height: "100%",
-                          border: "1px solid rgba(124,58,237,0.25)",
+                          border: "1px solid rgba(14,165,233,0.4)",
                           borderRadius: "16px",
-                          background: "linear-gradient(180deg, rgba(124,58,237,0.08), rgba(236,72,153,0.04))",
+                          background: "linear-gradient(180deg, rgba(6,182,212,0.12), rgba(14,165,233,0.06))",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexDirection: "column",
                           gap: "12px",
-                          color: "#c4b5fd"
+                          color: "var(--color-secondary)"
                         }
                       },
                       React.createElement("div", null, "Robot preview is optimizing..."),
@@ -1076,9 +1125,9 @@
                         {
                           onClick: () => setLoadRobot(true),
                           style: {
-                            border: "1px solid #4b3c73",
-                            background: "#231f36",
-                            color: "#e9ddff",
+                            border: "1px solid var(--color-border)",
+                            background: "var(--color-surface)",
+                            color: "var(--color-text)",
                             borderRadius: "10px",
                             padding: "8px 12px",
                             cursor: "pointer"
@@ -1122,8 +1171,8 @@
                       transition: { duration: 0.35 },
                       style: {
                         width: "min(900px, 100%)",
-                        background: "#131320",
-                        border: "1px solid #2f2f42",
+                        background: "var(--color-surface-2)",
+                        border: "1px solid var(--color-border)",
                         borderRadius: "16px",
                         padding: "20px",
                         boxSizing: "border-box"
@@ -1139,15 +1188,15 @@
                           marginBottom: "14px"
                         }
                       },
-                      React.createElement("h3", { style: { margin: 0, color: "#c4b5fd" } }, "Cascade Demo Reel"),
+                      React.createElement("h3", { style: { margin: 0, color: "var(--color-secondary)" } }, "Cascade Demo Reel"),
                       React.createElement(
                         "button",
                         {
                           onClick: () => setDemoOpen(false),
                           style: {
-                            border: "1px solid #4b3c73",
-                            background: "#221c33",
-                            color: "#f3e8ff",
+                            border: "1px solid var(--color-border)",
+                            background: "var(--color-surface)",
+                            color: "var(--color-text)",
                             borderRadius: "10px",
                             padding: "8px 10px",
                             cursor: "pointer"
@@ -1168,16 +1217,16 @@
                           exit: { opacity: 0, y: -12 },
                           transition: { duration: 0.3 },
                           style: {
-                            background: "#181828",
-                            border: "1px solid #31314a",
+                            background: "var(--color-surface-2)",
+                            border: "1px solid var(--color-border)",
                             borderRadius: "12px",
                             padding: "14px"
                           }
                         },
-                        React.createElement("div", { style: { display: "inline-flex", border: "1px solid #4b3c73", color: "#d8b4fe", borderRadius: "999px", padding: "4px 10px", fontSize: "12px", marginBottom: "12px" } }, activeDemo.chip),
-                        React.createElement("h4", { style: { margin: "0 0 10px 0", color: "#e6e8ff", fontSize: "20px" } }, activeDemo.title),
-                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "#94a3b8", fontSize: "13px", marginBottom: "8px", wordBreak: "break-word" } }, `IN  ${activeDemo.source}`),
-                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "#c4b5fd", fontSize: "13px", wordBreak: "break-word" } }, `OUT ${activeDemo.result}`)
+                        React.createElement("div", { style: { display: "inline-flex", border: "1px solid var(--color-border)", color: "var(--color-secondary)", borderRadius: "999px", padding: "4px 10px", fontSize: "12px", marginBottom: "12px" } }, activeDemo.chip),
+                        React.createElement("h4", { style: { margin: "0 0 10px 0", color: "var(--color-text)", fontSize: "20px" } }, activeDemo.title),
+                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "var(--color-muted)", fontSize: "13px", marginBottom: "8px", wordBreak: "break-word" } }, `IN  ${activeDemo.source}`),
+                        React.createElement("div", { style: { fontFamily: "Consolas, Monaco, monospace", color: "var(--color-secondary)", fontSize: "13px", wordBreak: "break-word" } }, `OUT ${activeDemo.result}`)
                       )
                     ),
                     React.createElement(
@@ -1188,7 +1237,7 @@
                         "Error feedback at exact failing layer",
                         "Live preview while typing"
                       ].map((line) =>
-                        React.createElement("div", { key: line, style: { background: "#1c1c2d", border: "1px solid #32324a", borderRadius: "10px", padding: "8px 10px", color: "#cbd5e1", fontSize: "13px" } }, line)
+                        React.createElement("div", { key: line, style: { background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "8px 10px", color: "var(--color-text)", fontSize: "13px" } }, line)
                       )
                     ),
                     React.createElement(
@@ -1202,8 +1251,8 @@
                         style: {
                           marginTop: "14px",
                           border: "none",
-                          background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                          color: "#fff",
+                          background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+                          color: "var(--color-text)",
                           borderRadius: "10px",
                           padding: "12px 14px",
                           cursor: "pointer",
@@ -1224,3 +1273,4 @@
     </script>
   </body>
 </html>
+

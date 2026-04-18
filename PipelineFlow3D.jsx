@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useRef } from "https://esm.sh/react@18.2.0";
 import * as THREE from "https://esm.sh/three@0.161.0";
 
-const PIPE_COLOR = new THREE.Color("#7c3aed");
-const PIPE_PULSE_COLOR = new THREE.Color("#ffffff");
+const PIPE_COLOR = new THREE.Color("#06b6d4");
+const PIPE_PULSE_COLOR = new THREE.Color("#f1f5f9");
 
 const CIPHER_COLORS = {
-  caesar: 0xf59e0b,
-  xor: 0x3b82f6,
+  caesar: 0x0ea5e9,
+  xor: 0x06b6d4,
   vigenere: 0x10b981,
-  railfence: 0xef4444,
-  base64: 0x8b5cf6,
-  reverse: 0xec4899
+  railfence: 0x38bdf8,
+  base64: 0x22d3ee,
+  reverse: 0x67e8f9
 };
 
 function createTextPlane(text) {
