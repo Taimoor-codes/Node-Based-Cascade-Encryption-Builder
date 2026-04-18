@@ -612,6 +612,7 @@
         const [isDesktop, setIsDesktop] = useState(typeof window !== "undefined" ? window.innerWidth >= 1024 : true);
         const [loadRobot, setLoadRobot] = useState(false);
         const [demoIndex, setDemoIndex] = useState(0);
+        const [testimonialIndex, setTestimonialIndex] = useState(0);
 
         const demoFrames = [
           {
@@ -634,6 +635,42 @@
           }
         ];
 
+        const testimonials = [
+          {
+            id: 1,
+            name: "Aarav Malik",
+            role: "Security Engineer",
+            company: "CipherForge",
+            content:
+              "CipherStack made our encryption demos instantly understandable. Judges loved seeing each layer transform in real time.",
+            rating: 5,
+            avatar:
+              "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80"
+          },
+          {
+            id: 2,
+            name: "Maya Reed",
+            role: "Frontend Lead",
+            company: "NovaGrid",
+            content:
+              "The visual pipeline and fast presets helped us pitch complex crypto logic in under two minutes during finals.",
+            rating: 5,
+            avatar:
+              "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80"
+          },
+          {
+            id: 3,
+            name: "Daniel Kim",
+            role: "Product Builder",
+            company: "LaunchLens",
+            content:
+              "We switched to CipherStack the night before demo day and still shipped a polished, interactive prototype.",
+            rating: 5,
+            avatar:
+              "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80"
+          }
+        ];
+
         useEffect(() => {
           const onResize = () => setIsDesktop(window.innerWidth >= 1024);
           window.addEventListener("resize", onResize);
@@ -641,9 +678,15 @@
         }, []);
 
         useEffect(() => {
+          // Keep heavy 3D scene off mobile by default for smoother UX.
+          if (!isDesktop) {
+            setLoadRobot(false);
+            return undefined;
+          }
+
           const timeout = setTimeout(() => setLoadRobot(true), 650);
           return () => clearTimeout(timeout);
-        }, []);
+        }, [isDesktop]);
 
         useEffect(() => {
           const intervalId = setInterval(() => {
@@ -651,6 +694,13 @@
           }, 2200);
           return () => clearInterval(intervalId);
         }, [demoFrames.length]);
+
+        useEffect(() => {
+          const intervalId = setInterval(() => {
+            setTestimonialIndex((prev) => (prev + 1) % testimonials.length);
+          }, 5000);
+          return () => clearInterval(intervalId);
+        }, [testimonials.length]);
 
         const activeDemo = demoFrames[demoIndex];
 
@@ -802,6 +852,117 @@
                     item.text
                   )
                 )
+              ),
+              React.createElement(
+                motion.div,
+                {
+                  initial: { opacity: 0, y: 20 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: 0.75, duration: 0.45 },
+                  style: {
+                    gridColumn: isDesktop ? "1 / -1" : "auto",
+                    marginTop: isDesktop ? "12px" : "6px",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "rgba(22,22,34,0.7)",
+                    borderRadius: "16px",
+                    padding: isDesktop ? "18px" : "14px"
+                  }
+                },
+                React.createElement(
+                  "div",
+                  {
+                    style: {
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "10px",
+                      gap: "8px",
+                      flexWrap: "wrap"
+                    }
+                  },
+                  React.createElement(
+                    "div",
+                    { style: { color: "#d8b4fe", fontSize: "13px", fontWeight: 700 } },
+                    "Trusted by builders"
+                  ),
+                  React.createElement(
+                    "div",
+                    { style: { display: "flex", gap: "6px" } },
+                    ...testimonials.map((item, idx) =>
+                      React.createElement("button", {
+                        key: item.id,
+                        onClick: () => setTestimonialIndex(idx),
+                        style: {
+                          width: testimonialIndex === idx ? "20px" : "8px",
+                          height: "8px",
+                          borderRadius: "999px",
+                          border: "none",
+                          cursor: "pointer",
+                          background: testimonialIndex === idx ? "#a855f7" : "#4b5563",
+                          transition: "all 0.2s ease"
+                        },
+                        "aria-label": `Show testimonial ${idx + 1}`
+                      })
+                    )
+                  )
+                ),
+                React.createElement(
+                  AnimatePresence,
+                  { mode: "wait" },
+                  React.createElement(
+                    motion.div,
+                    {
+                      key: testimonials[testimonialIndex].id,
+                      initial: { opacity: 0, x: 20 },
+                      animate: { opacity: 1, x: 0 },
+                      exit: { opacity: 0, x: -20 },
+                      transition: { duration: 0.3 },
+                      style: {
+                        display: "grid",
+                        gridTemplateColumns: isDesktop ? "1fr auto" : "1fr",
+                        gap: "12px",
+                        alignItems: "center"
+                      }
+                    },
+                    React.createElement(
+                      "div",
+                      null,
+                      React.createElement(
+                        "div",
+                        { style: { marginBottom: "8px", color: "#facc15", fontSize: "13px" } },
+                        "★★★★★"
+                      ),
+                      React.createElement(
+                        "p",
+                        {
+                          style: {
+                            margin: 0,
+                            color: "#dbe3f0",
+                            lineHeight: 1.6,
+                            fontSize: "14px"
+                          }
+                        },
+                        `\"${testimonials[testimonialIndex].content}\"`
+                      ),
+                      React.createElement(
+                        "div",
+                        { style: { marginTop: "10px", color: "#9fb0c8", fontSize: "12px" } },
+                        `${testimonials[testimonialIndex].name} · ${testimonials[testimonialIndex].role}, ${testimonials[testimonialIndex].company}`
+                      )
+                    ),
+                    React.createElement("img", {
+                      src: testimonials[testimonialIndex].avatar,
+                      alt: testimonials[testimonialIndex].name,
+                      style: {
+                        width: isDesktop ? "64px" : "54px",
+                        height: isDesktop ? "64px" : "54px",
+                        borderRadius: "999px",
+                        objectFit: "cover",
+                        border: "2px solid rgba(168,85,247,0.45)"
+                      }
+                    })
+                  )
+                )
               )
             ),
             React.createElement(
@@ -820,7 +981,55 @@
               React.createElement(
                 "div",
                 { style: { width: "100%", height: "100%" } },
-                loadRobot
+                !isDesktop
+                  ? React.createElement(
+                      "div",
+                      {
+                        style: {
+                          width: "100%",
+                          height: "100%",
+                          border: "1px solid rgba(124,58,237,0.25)",
+                          borderRadius: "16px",
+                          background:
+                            "linear-gradient(180deg, rgba(124,58,237,0.12), rgba(236,72,153,0.06))",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexDirection: "column",
+                          gap: "10px",
+                          color: "#c4b5fd",
+                          textAlign: "center",
+                          padding: "14px",
+                          boxSizing: "border-box"
+                        }
+                      },
+                      React.createElement(
+                        "div",
+                        {
+                          style: {
+                            border: "1px solid rgba(124,58,237,0.5)",
+                            background: "rgba(124,58,237,0.12)",
+                            color: "#d8b4fe",
+                            borderRadius: "999px",
+                            padding: "4px 10px",
+                            fontSize: "12px",
+                            fontWeight: 700
+                          }
+                        },
+                        "Mobile Static Mode"
+                      ),
+                      React.createElement(
+                        "div",
+                        { style: { fontSize: "14px", color: "#e9d5ff", fontWeight: 600 } },
+                        "3D robot disabled for smoother performance"
+                      ),
+                      React.createElement(
+                        "div",
+                        { style: { fontSize: "12px", color: "#a5b4c8", maxWidth: "260px" } },
+                        "On desktop/laptop, the full interactive robot is enabled automatically."
+                      )
+                    )
+                  : loadRobot
                   ? React.createElement(
                       Suspense,
                       {
